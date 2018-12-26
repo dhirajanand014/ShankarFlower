@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Shankar Florist</string>
+    <string name="splash_screen_image_view_no_content">Shankar Florist Splash Screen</string>
+    <string name="refresh">REFRESH</string>
+</resources>
