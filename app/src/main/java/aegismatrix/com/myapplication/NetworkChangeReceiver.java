@@ -1,43 +1,16 @@
 package aegismatrix.com.myapplication;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
-import android.os.Build;
-import android.view.Gravity;
-import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.core.content.ContextCompat;
-
 public class NetworkChangeReceiver extends BroadcastReceiver {
-
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if (!isOnline(context, intent)) {
-            Snackbar connectedSB = Snackbar.make(((Activity) context).findViewById(android.R.id.content), "Connected to internet.", Snackbar.LENGTH_SHORT);
-            // get snackbar view
-            View mView = connectedSB.getView();
-            Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) mView;
-
-            layout.setPadding(0, 0, 0, 0);//set padding to 0
-// get textview inside snackbar view
-            TextView mTextView = mView.findViewById(com.google.android.material.R.id.snackbar_text);
-// set text to center
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                mTextView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            } else {
-                mTextView.setGravity(Gravity.CENTER_HORIZONTAL);
-            }
-            mTextView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorGreen));
-// show the snackbar
-            connectedSB.show();
             sendInternalBroadcast(context, true);
         } else {
             sendInternalBroadcast(context, false);

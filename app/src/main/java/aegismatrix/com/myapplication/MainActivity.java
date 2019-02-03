@@ -4,23 +4,31 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Parcelable;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.webkit.DownloadListener;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,16 +36,19 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 /**
- *
+ * Main Activity class
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements Observer {
     private static final int INPUT_FILE_REQUEST_CODE = 1;
     private static final int FILECHOOSER_RESULTCODE = 1;
     private static final String URL = "https://www.shankarflorist.com/";
@@ -51,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
     private ValueCallback<Uri[]> mFilePathCallback;
     private String mCameraPhotoPath;
     private Context context = this;
+    private NetworkChangeReceiver networkChangeReceiver = new NetworkChangeReceiver();
+    private String ORIGINAL_URL = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +75,10 @@ public class MainActivity extends AppCompatActivity {
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.setInitialScale(1);
+        IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        ObservableObject.getInstance().reset();
+        ObservableObject.getInstance().addObserver(this);
+        registerReceiver(networkChangeReceiver, intentFilter);
         webView.getSettings().setAppCachePath(this.getApplicationContext().getCacheDir().getAbsolutePath());
         webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
         webView.getSettings().setDatabaseEnabled(true);
@@ -134,6 +151,18 @@ public class MainActivity extends AppCompatActivity {
         });
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                try {
+                    //stop url loading.
+                    webView.stopLoading();
+                } catch (Exception e) {
+                    Toast.makeText(getApplicationContext(), "Please check your connectivity!! :" + e,
+                            Toast.LENGTH_LONG).show();
+                }
+                super.onReceivedError(view, request, error);
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 return super.shouldOverrideUrlLoading(view, url);
             }
@@ -184,6 +213,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ObservableObject.getInstance().deleteObserver(this);
+        unregisterReceiver(networkChangeReceiver);
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         webView.saveState(outState);
@@ -196,6 +232,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Fetch file name from the URL to be used to create PDF or Excel frile with the Filename.
+     *
      * @return
      */
     private String fetchFileName() {
@@ -210,6 +248,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * File chooser for camera to upload profile image.
+     *
      * @param filePathCallback
      */
     private void showFileChooser(ValueCallback<Uri[]> filePathCallback) {
@@ -264,6 +304,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Check Runtime Permissions.
+     *
      * @param context
      * @param permissions
      * @return
@@ -281,6 +323,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Allow or Deny result handler method.
+     *
      * @param requestCode
      * @param permissions
      * @param grantResults
@@ -297,6 +341,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Create an image file to get uploaded to the profile.
+     *
      * @return
      * @throws IOException
      */
@@ -360,5 +406,65 @@ public class MainActivity extends AppCompatActivity {
                 mUploadMessage = null;
             }
         }
+    }
+
+    @Override
+    public void update(Observable observable, Object intent) {
+        if (null != intent) {
+            boolean status = ((Intent) intent).getBooleanExtra("status", Boolean.TRUE);
+            String message = getSnackBarMessage(status);
+            if (!message.isEmpty()) {
+                Snackbar snackBar = Snackbar.make(findViewById(android.R.id.content), message, status ? Snackbar.LENGTH_SHORT : Snackbar.LENGTH_INDEFINITE);
+                // get snackbar view
+                View mView = snackBar.getView();
+                Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) mView;
+
+                layout.setPadding(0, 0, 0, 0);//set padding to 0
+                // get textview inside snackbar view
+                TextView mTextView = mView.findViewById(com.google.android.material.R.id.snackbar_text);
+                // set text to center
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    mTextView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                } else {
+                    mTextView.setGravity(Gravity.CENTER_HORIZONTAL);
+                }
+                mTextView.setBackgroundColor(ContextCompat.getColor(MainActivity.this, status ? R.color.colorGreen : R.color.design_default_color_error));
+                // show the snackbar
+                snackBar.show();
+            }
+        }
+    }
+
+    /**
+     * Update Snackbar message on netword state change.
+     *
+     * @param inStatus
+     * @return
+     */
+    private String getSnackBarMessage(boolean inStatus) {
+        if (inStatus) {
+            if (!ORIGINAL_URL.isEmpty()) {
+                webView.loadUrl(ORIGINAL_URL);
+                ORIGINAL_URL = "";
+                return "Connected to internet.";
+            }
+            return "";
+        }
+        displayErrorImage();
+        return "Check internet connection!!";
+    }
+
+    /**
+     * Load image as url when no internet connection is availible and changes to load failed url back when internet is availaible.
+     */
+    private void displayErrorImage() {
+        DisplayMetrics displaymetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+        int width = displaymetrics.widthPixels;
+        ORIGINAL_URL = webView.getUrl();
+        String html = "<html><head><title>Example</title><meta name=\"viewport\"\"content=\"width=" + width + ", initial-scale=0.65 \" /></head>";
+        html += "<body><img width=\"" + width + "\" src=\"" + "screen.png" + "\" /></body></html>";
+        webView.getSettings().setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
+        webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null);
     }
 }

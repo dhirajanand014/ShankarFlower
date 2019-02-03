@@ -3,7 +3,7 @@ package aegismatrix.com.myapplication;
 import java.util.Observable;
 
 /**
- *
+ * Observer class to process network changes to Splash screen or main activity
  */
 public class ObservableObject extends Observable {
     private static ObservableObject instance;
@@ -12,6 +12,8 @@ public class ObservableObject extends Observable {
     }
 
     /**
+     * Singleton Instance
+     *
      * @return
      */
     public static ObservableObject getInstance() {
@@ -22,6 +24,8 @@ public class ObservableObject extends Observable {
     }
 
     /**
+     * Call update method of respective implementation.
+     *
      * @param data
      */
     public void updateValue(Object data) {
@@ -29,5 +33,12 @@ public class ObservableObject extends Observable {
             setChanged();
             notifyObservers(data);
         }
+    }
+
+    /**
+     * Create new ObservableObject
+     */
+    public void reset() {
+        instance = new ObservableObject();
     }
 }

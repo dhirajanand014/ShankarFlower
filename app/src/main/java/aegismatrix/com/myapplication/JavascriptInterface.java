@@ -21,6 +21,9 @@ import java.lang.reflect.Method;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
+/**
+ * Java Interface class for handling javascript function from the website
+ */
 public class JavascriptInterface {
     private Context context;
     public static String FILENAME = "";
@@ -34,6 +37,12 @@ public class JavascriptInterface {
         convertBase64StringAndStoreIt(base64Data, contentType);
     }
 
+    /**
+     * Get String url from Blob file type using XHR
+     *
+     * @param blobUrl
+     * @return
+     */
     public static String getBase64StringFromBlobUrl(String blobUrl) {
         if (blobUrl.startsWith("blob")) {
             return "javascript: var xhr = new XMLHttpRequest();" +
@@ -55,6 +64,13 @@ public class JavascriptInterface {
         return "javascript: alert('File : Shankar Flower " + FILENAME + " Cannot be downloaded);";
     }
 
+    /**
+     * Download PDF and Excel file from the base64 String Path decoded.
+     *
+     * @param base64PDf
+     * @param contentType
+     * @throws IOException
+     */
     private void convertBase64StringAndStoreIt(String base64PDf, String contentType) throws IOException {
         final int notificationId = 1;
         final String NOTIFICATION_CHANNEL_ID = "MY_DL";
@@ -99,7 +115,10 @@ public class JavascriptInterface {
         }
     }
 
+
     /**
+     * Get Filename for download
+     *
      * @param fileName
      * @return
      */
@@ -109,7 +128,8 @@ public class JavascriptInterface {
     }
 
     /**
-     *
+     * If your app targets API 24+, and you still want/need to use file:// intents,
+     * you can use hacky way to disable the runtime check
      */
     private void disableFileURIExposure() {
         try {

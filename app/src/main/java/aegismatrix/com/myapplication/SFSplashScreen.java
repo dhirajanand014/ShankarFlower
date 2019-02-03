@@ -19,6 +19,9 @@ import java.util.Observer;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+/**
+ * Main class for splash screen.
+ */
 public class SFSplashScreen extends AppCompatActivity implements Observer {
     private ProgressBar progressBar;
     private NetworkChangeReceiver networkChangeReceiver = new NetworkChangeReceiver();
@@ -34,6 +37,11 @@ public class SFSplashScreen extends AppCompatActivity implements Observer {
         registerReceiver(networkChangeReceiver, intentFilter);
     }
 
+    /**
+     * Transition from Left to Right
+     *
+     * @param context
+     */
     public void animateSlideLeft(Context context) {
         ((SFSplashScreen) context).overridePendingTransition(R.anim.animate_slide_left_enter, R.anim.animate_slide_left_exit);
     }
@@ -41,35 +49,37 @@ public class SFSplashScreen extends AppCompatActivity implements Observer {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        ObservableObject.getInstance().deleteObserver(this);
         unregisterReceiver(networkChangeReceiver);
     }
 
     @Override
     public void update(Observable observable, Object intent) {
         if (null != intent) {
-            if (((Intent) intent).getBooleanExtra("status", Boolean.TRUE)) {
+            boolean status = ((Intent) intent).getBooleanExtra("status", Boolean.TRUE);
+            Snackbar snackBar = Snackbar.make(findViewById(android.R.id.content), status ? "Connected to internet." : "Check internet connection!!", status ? Snackbar.LENGTH_SHORT : Snackbar.LENGTH_INDEFINITE);
+            // get snackbar view
+            View mView = snackBar.getView();
+            Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) mView;
+
+            layout.setPadding(0, 0, 0, 0);//set padding to 0
+            // get textview inside snackbar view
+            TextView mTextView = mView.findViewById(com.google.android.material.R.id.snackbar_text);
+            // set text to center
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                mTextView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            } else {
+                mTextView.setGravity(Gravity.CENTER_HORIZONTAL);
+            }
+            mTextView.setBackgroundColor(ContextCompat.getColor(SFSplashScreen.this, status ? R.color.colorGreen : R.color.design_default_color_error));
+            // show the snackbar
+            snackBar.show();
+
+            if (status) {
                 Intent mainIntent = new Intent(SFSplashScreen.this, MainActivity.class);
                 startActivity(mainIntent);
                 animateSlideLeft(this);
                 finish();
-            } else {
-                Snackbar NICSnackbbar = Snackbar.make(findViewById(android.R.id.content), "Check internet connection!!", Snackbar.LENGTH_INDEFINITE);
-                // get snackbar view
-                View mView = NICSnackbbar.getView();
-                Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) mView;
-
-                layout.setPadding(0, 0, 0, 0);//set padding to 0
-// get textview inside snackbar view
-                TextView mTextView = mView.findViewById(com.google.android.material.R.id.snackbar_text);
-// set text to center
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    mTextView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                } else {
-                    mTextView.setGravity(Gravity.CENTER_HORIZONTAL);
-                }
-                mTextView.setBackgroundColor(ContextCompat.getColor(SFSplashScreen.this, R.color.design_default_color_error));
-// show the snackbar
-                NICSnackbbar.show();
             }
         }
     }
