@@ -80,7 +80,10 @@ public class MainActivity extends AppCompatActivity implements Observer {
         ObservableObject.getInstance().addObserver(this);
         registerReceiver(networkChangeReceiver, intentFilter);
         webView.getSettings().setAppCachePath(this.getApplicationContext().getCacheDir().getAbsolutePath());
-        webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            //loads from cache or looks up to the network.
+            webView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        }
         webView.getSettings().setDatabaseEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setAppCacheEnabled(true);
